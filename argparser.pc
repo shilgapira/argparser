@@ -1,0 +1,4 @@
+Name: argparser
+Description: C command-line argument parser
+Version: 0.1.0
+Libs: -largparser

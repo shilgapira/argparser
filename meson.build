@@ -24,3 +24,5 @@ cflags = cc.get_supported_arguments([
 add_project_arguments(cflags, language: 'c')
 
 library('argparser', 'argparser.c', install: true)
+install_headers('argparser.h')
+install_data('argparser.pc', install_dir: '/usr/lib/pkgconfig')

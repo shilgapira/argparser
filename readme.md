@@ -10,7 +10,7 @@
 
 ### Features
 
-* No hidden memory allocations, all things are on stack and that makes argparser very fast.
+* No hidden memory allocations
 * Automatically generated help and usage messages.
 * Modern c23 implementation.
 * Issue errors when users give the program invalid arguments.
@@ -26,7 +26,7 @@
 /* main.c */
 
 #include <argparser.h>
-  
+
 int main (int argc, char **argv)
 {
     struct argparser *parser = argparser.new()
@@ -53,10 +53,10 @@ usage: (basename of argv[0]) [OPTION]... [ACTION]...
 
 actions:
   new               my first action
-  
+
 options:
   --verbose, -v     verbose mode
-  
+
 Have a nice day!
 ```
 
@@ -69,15 +69,15 @@ Have a nice day!
     //                             ⌃ callback
     {0} // end of list
   });
-  
+
   parser.options((option[] {
     // longopt,   shortopt,           n-arguments,    userdata
     // ⌄          ⌄                   ⌄               ⌄
     { "verbose", 'v', "verbose mode", 0, NULL,        NULL },
     //                 ⌃ about           ⌃ callback
-    {0} // end of list 
+    {0} // end of list
    });
-   
+
    parser.epilog("Have a nice day!");
 }
 
@@ -106,11 +106,11 @@ parser.usage_fn(function)
   ...
   parser.exit(true)
   ...
-  
+
   // or
-  
+
   char *errormsg = parser.parse(argc, argv);
-  
+
   if (errormsg)
     ...
 ```
@@ -129,7 +129,7 @@ parser.usage_fn(function)
 ```sh
   $ meson setup build
   # meson install -C build
-``` 
+```
 <br>
 
 ### Meson
