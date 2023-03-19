@@ -1,5 +1,9 @@
 #pragma once
 
+#if __STDC_VERSION__ <= 201710L
+# include <stdbool.h>
+#endif
+
 struct option
 {
 	char *longopt;
@@ -8,7 +12,7 @@ struct option
 	int argc;
 	void (*callback)(struct option, char **argv);
 	void *userdata;
-};
+} __attribute__((packed));
 
 struct action
 {
@@ -17,7 +21,7 @@ struct action
 	int argc;
 	void (*callback)(struct action, char **argv);
 	void *userdata;
-};
+} __attribute__((packed));
 
 struct colors
 {
@@ -30,11 +34,11 @@ struct colors
 	char *action_about;
 	char *option;
 	char *option_about;
-};
+} __attribute__((packed));
 
 struct argparser
 {
-	struct argparser* (*new)();
+	struct argparser* (*new)(void);
 
 	/* The name of the program
 	   (default: basename(argv[0])) */
@@ -56,11 +60,11 @@ struct argparser
 	void (*error_fn)(void (*)(char *format, ...));
 
 	/* Set custom help function */
-	void (*help_fn)(void (*)());
+	void (*help_fn)(void (*)(void));
 
 	/* Set custom usage function,
-	   @exit: is exit needed */
-	void (*usage_fn)(void (*)(bool exit));
+	   @param: is exit needed */
+	void (*usage_fn)(void (*)(bool));
 
 	/* Should exit at error
 	   (default: false ) */

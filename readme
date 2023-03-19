@@ -1,0 +1,46 @@
+NAME
+	argparser - Argument parser.
+
+DESCRIPTION
+	Argparser is a C library that makes it easy to write
+	user-friendly command-line interfaces. The program
+	defines what arguments it requires, and argparser
+	will figure out how to parse those out.
+
+	Argparser does not use heap memory allocation,
+	and has an intuitive API. Maybe code looks heavy,
+	but after compilation, it is really tidy thing.
+	The library will store all data in cache, but
+	the parser is created for multiple usages.
+
+RATIONALE
+	Using getopts from <unistd.h> is fine, until
+	we have too much time. Reading over and over
+	again manpages and creating program on
+	unreadable and bloated code is frustrating.
+
+USAGE
+	We have four structs and one global variable,
+	and that's all we should be interested in.
+	Variable 'argparser' is created becouse of
+	my own preference. it works like main module
+	with one function (new). We call
+	argparser.new(void) to get a new parser with
+	a cleaned cache. There is small example:
+	struct argparser *parser = argparser.new();
+	After initialization, we get a pointer to our
+	new struct. We can call every function inside;
+	it looks like an object. Don't worry function
+	calls and anything else will be stripped during
+	compilaton. How to use the rest of functions?
+	All functions are explained in header.
+	Thats all, have a nice day!
+
+LICENSE
+	Argparser is released under the MIT license,
+	which grants the following permissions:
+	 - commercial use,
+	 - distibution,
+	 - modification,
+	 - private usage.
+	For more information see the license file.

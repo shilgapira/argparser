@@ -1,6 +1,5 @@
-#define _GNU_SOURCE
+#include "argparser.h"
 
-#include <argparser.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,14 +20,14 @@ struct data
 	struct colors colors;
 
 	void (*error_fn)(char *, ...);
-	void (*help_fn)();
+	void (*help_fn)(void);
 	void (*usage_fn)(bool exit);
 
 	int argc;
 	char **argv;
 
 	char *error;
-};
+} __attribute__((packed));
 
 typedef enum {
 	PROG,
@@ -43,6 +42,7 @@ typedef enum {
 	ACTIONS
 } data_t;
 
+#pragma pack(push, 4)
 struct data_field
 {
 	data_t type;
@@ -52,17 +52,18 @@ struct data_field
 		bool boolean;
 		struct option *options;
 		struct action *actions;
-		void (*function)();
-	};
+		void (*function)(void);
+	} value;
 };
+#pragma pack(pop)
 
-static struct data *data_global()
+static struct data *data_global(void)
 {
 	static struct data self = {0};
 	return &self;
 }
 
-static struct argparser *argparser_global()
+static struct argparser *argparser_global(void)
 {
 	static struct argparser self = {0};
 	return &self;
@@ -74,30 +75,34 @@ static void argparser_set(struct data_field field)
 
 	switch (field.type) {
         case USAGE:
-        	data->usage = field.string;
+        	data->usage = field.value.string;
                 break;
         case PROG:
-        	data->prog = field.string;
+        	data->prog = field.value.string;
+		break;
         case ABOUT:
-        	data->about = field.string;
+        	data->about = field.value.string;
+		break;
         case EPILOG:
-        	data->epilog = field.string;
+        	data->epilog = field.value.string;
+		break;
         case EXIT:
-        	data->exit = field.boolean;
+        	data->exit = field.value.boolean;
                 break;
         case OPTIONS:
-        	data->options = field.options;
+        	data->options = field.value.options;
                 break;
         case ACTIONS:
-        	data->actions = field.actions;
+        	data->actions = field.value.actions;
                 break;
         case ERROR_FN:
-        	data->error_fn = (void *) field.function;
+        	data->error_fn = (void (*)(char *, ...)) field.value.function;
         	break;
         case HELP_FN:
-        	data->help_fn = field.function;
+        	data->help_fn = field.value.function;
+		break;
         case USAGE_FN:
-        	data->usage_fn = (void *) field.function;
+        	data->usage_fn = (void (*)(bool)) field.value.function;
                 break;
         }
 }
@@ -106,7 +111,7 @@ static void argparser_prog(char *string)
 {
 	argparser_set((struct data_field) {
 		.type = PROG,
-	       	.string = string
+	       	.value.string = string
 	});
 }
 
@@ -114,7 +119,7 @@ static void argparser_usage(char *string)
 {
 	argparser_set((struct data_field) {
 		.type = USAGE,
-	       	.string = string
+	       	.value.string = string
        	});
 }
 
@@ -122,7 +127,7 @@ static void argparser_about(char *string)
 {
 	argparser_set((struct data_field) {
 		.type = ABOUT,
-	       	.string = string
+	       	.value.string = string
        	});
 }
 
@@ -130,7 +135,7 @@ static void argparser_epilog(char *string)
 {
 	argparser_set((struct data_field) {
 		.type = EPILOG,
-	       	.string = string
+	       	.value.string = string
 	});
 }
 
@@ -138,15 +143,15 @@ static void argparser_error_fn(void (*function)(char *, ...))
 {
 	argparser_set((struct data_field) {
 		.type = ERROR_FN,
-	       	.function = (void *) function
+	       	.value.function = (void (*)(void)) function
 	});
 }
 
-static void argparser_help_fn(void (*function)())
+static void argparser_help_fn(void (*function)(void))
 {
 	argparser_set((struct data_field) {
 		.type = HELP_FN,
-	       	.function = (void *) function
+	       	.value.function = (void (*)(void)) function
 	});
 }
 
@@ -154,7 +159,7 @@ static void argparser_usage_fn(void (*function)(bool))
 {
 	argparser_set((struct data_field) {
 		.type = USAGE_FN,
-	       	.function = (void *) function
+	       	.value.function = (void (*)(void)) function
 	});
 }
 
@@ -162,7 +167,7 @@ static void argparser_exit(bool boolean)
 {
 	argparser_set((struct data_field) {
 		.type = EXIT,
-		.boolean = boolean
+		.value.boolean = boolean
 	});
 }
 
@@ -170,7 +175,7 @@ static void argparser_options(struct option *options)
 {
 	argparser_set((struct data_field) {
 		.type = OPTIONS,
-	       	.options = options
+	       	.value.options = options
 	});
 }
 
@@ -178,7 +183,7 @@ static void argparser_actions(struct action *actions)
 {
 	argparser_set((struct data_field) {
 		.type = ACTIONS,
-	       	.actions = actions
+	       	.value.actions = actions
 	});
 }
 
@@ -189,12 +194,12 @@ static char *color(char *color)
 	return "";
 }
 
-static char *reset()
+static char *reset(void)
 {
 	return (isatty(STDOUT_FILENO)) ? "\033[0m" : "";
 }
 
-static void default_usage(bool exit)
+static void default_usage(bool quit)
 {
 	struct data *self = data_global();
 
@@ -202,9 +207,12 @@ static void default_usage(bool exit)
 		color(self->colors.prog), self->prog, reset(),
 		color(self->colors.usage), self->usage, reset()
 	);
+
+	if (quit)
+		exit(EXIT_SUCCESS);
 }
 
-static void default_help()
+static void default_help(void)
 {
 	struct data *self = data_global();
 	int longest;
@@ -232,7 +240,7 @@ static void default_help()
 
 	if (self->actions) {
 		for (int i = 0; self->actions[i].name; i++) {
-			int length = strlen(self->actions[i].name);
+			int length = (int) strlen(self->actions[i].name);
 
 			if (length > longest)
 				longest = length;
@@ -245,7 +253,7 @@ static void default_help()
 	  		                 self->actions[i].name, reset());
 
 			if (self->actions[i].about) {
-				int offset = longest - strlen(self->actions[i].name) + 8;
+				int offset = longest - (int) strlen(self->actions[i].name) + 8;
 
 				while (offset--)
 					fputc(' ', stdout);
@@ -310,17 +318,15 @@ static void default_error(char *fmt, ...)
 
 	if (self->error_fn) {
 		self->error_fn(fmt, args);
+		va_end(args);
+		return;
 	} else if (self->exit) {
 		fprintf(stderr, "argparser: %serror%s: ", color("\033[31m"), reset());
 		vfprintf(stderr, fmt, args);
 		fputc('\n', stderr);
 		va_end(args);
 		exit(EXIT_FAILURE);
-	} else {
-		asprintf(&self->error, fmt, args);
 	}
-
-	va_end(args);
 }
 
 static int find_option(int at)
@@ -438,7 +444,7 @@ static char *argparser_parse(int argc, char **argv)
 	return self->error;
 }
 
-struct argparser *__argparser_new()
+static struct argparser *argparser_new(void)
 {
 	struct argparser *self = argparser_global();
 
@@ -458,5 +464,5 @@ struct argparser *__argparser_new()
 }
 
 struct argparser argparser = {
-	.new = __argparser_new
+	.new = argparser_new
 };
